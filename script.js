@@ -1,6 +1,6 @@
 // ── Config ──
-const GEMINI_API_KEY = 'AIzaSyD8DVnxxIzvnAkcY8kYL6wK2yqOnXVZ16w'; // 🔑 Paste your key here
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GROQ_API_KEY = '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';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // ── State ──
 let sessionStarted = false;
@@ -80,7 +80,7 @@ function startSession() {
 
   const opening = "Hey! I'm BioMind, your biology tutor. What's your name, and which class are you in?";
   appendMessage('ai', opening);
-  conversationHistory.push({ role: 'model', parts: [{ text: opening }] });
+  conversationHistory.push({ role: 'assistant', content: opening });
 }
 
 // ── New Chat ──
@@ -116,7 +116,7 @@ async function sendMessage() {
   input.value = '';
   autoResize(input);
   appendMessage('user', text);
-  conversationHistory.push({ role: 'user', parts: [{ text }] });
+  conversationHistory.push({ role: 'user', content: text });
 
   extractStudentInfo(text);
 
@@ -125,23 +125,30 @@ async function sendMessage() {
   document.getElementById('sendBtn').disabled = true;
 
   try {
-    const response = await fetch(GEMINI_URL, {
+    const response = await fetch(GROQ_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`
+      },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: conversationHistory
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 1024,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...conversationHistory
+        ]
       })
     });
 
     const data = await response.json();
     removeTyping();
 
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text
+    const reply = data.choices?.[0]?.message?.content
       || "Sorry, I couldn't get a response. Please try again.";
 
     appendMessage('ai', reply);
-    conversationHistory.push({ role: 'model', parts: [{ text: reply }] });
+    conversationHistory.push({ role: 'assistant', content: reply });
 
   } catch (err) {
     removeTyping();
