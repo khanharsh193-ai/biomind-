@@ -1,3 +1,7 @@
+// ── Config ──
+const GEMINI_API_KEY = 'AIzaSyD8DVnxxIzvnAkcY8kYL6wK2yqOnXVZ16w'; // 🔑 Paste your key here
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
 // ── State ──
 let sessionStarted = false;
 let isWaiting = false;
@@ -74,10 +78,9 @@ function startSession() {
   document.getElementById('userInput').focus();
   sessionStarted = true;
 
-  // BioMind opens first
   const opening = "Hey! I'm BioMind, your biology tutor. What's your name, and which class are you in?";
   appendMessage('ai', opening);
-  conversationHistory.push({ role: 'assistant', content: opening });
+  conversationHistory.push({ role: 'model', parts: [{ text: opening }] });
 }
 
 // ── New Chat ──
@@ -113,9 +116,8 @@ async function sendMessage() {
   input.value = '';
   autoResize(input);
   appendMessage('user', text);
-  conversationHistory.push({ role: 'user', content: text });
+  conversationHistory.push({ role: 'user', parts: [{ text }] });
 
-  // Try to extract name/class from early messages
   extractStudentInfo(text);
 
   showTyping();
@@ -123,27 +125,28 @@ async function sendMessage() {
   document.getElementById('sendBtn').disabled = true;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(GEMINI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: SYSTEM_PROMPT,
-        messages: conversationHistory
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: conversationHistory
       })
     });
 
     const data = await response.json();
     removeTyping();
 
-    const reply = data.content?.[0]?.text || "Sorry, I couldn't get a response. Please try again.";
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text
+      || "Sorry, I couldn't get a response. Please try again.";
+
     appendMessage('ai', reply);
-    conversationHistory.push({ role: 'assistant', content: reply });
+    conversationHistory.push({ role: 'model', parts: [{ text: reply }] });
 
   } catch (err) {
     removeTyping();
-    appendMessage('ai', "Something went wrong connecting to BioMind. Please check your connection and try again.");
+    appendMessage('ai', "Something went wrong. Please check your connection and try again.");
+    console.error(err);
   }
 
   isWaiting = false;
@@ -151,14 +154,13 @@ async function sendMessage() {
   document.getElementById('userInput').focus();
 }
 
-// ── Extract Student Info (basic) ──
+// ── Extract Student Info ──
 function extractStudentInfo(text) {
-  // Detect class mentions like "class 7", "7th", "8th grade" etc.
   const classMatch = text.match(/class\s*(\d+)|(\d+)(st|nd|rd|th)\s*(class|grade|std)/i);
   if (classMatch) {
     const num = classMatch[1] || classMatch[2];
     studentClass = parseInt(num);
-    const levelMap = {6:'Level 1',7:'Level 1',8:'Level 2',9:'Level 2',10:'Level 3',11:'Level 4',12:'Level 4'};
+    const levelMap = { 6:'Level 1', 7:'Level 1', 8:'Level 2', 9:'Level 2', 10:'Level 3', 11:'Level 4', 12:'Level 4' };
     document.getElementById('studentLevelDisplay').textContent = levelMap[studentClass] || 'Level 1';
   }
 }
@@ -183,15 +185,15 @@ function appendMessage(role, text) {
   container.appendChild(msg);
   container.scrollTop = container.scrollHeight;
 
-  // Update student name in sidebar if we can detect it
   if (role === 'user' && studentName === 'Student') {
     const words = text.split(' ');
-    // Very basic heuristic — first capitalized word that isn't "I" or "My"
-    const name = words.find(w => w.length > 1 && w[0] === w[0].toUpperCase() && !['I','My','The','A','An','Hi','Hey','Hello'].includes(w));
+    const name = words.find(w => w.length > 1 && w[0] === w[0].toUpperCase() && !['I','My','The','A','An','Hi','Hey','Hello','Im',"I'm"].includes(w));
     if (name) {
       studentName = name.replace(/[^a-zA-Z]/g, '');
-      document.getElementById('studentNameDisplay').textContent = studentName;
-      document.querySelector('.student-avatar').textContent = studentName.charAt(0).toUpperCase();
+      if (studentName.length > 1) {
+        document.getElementById('studentNameDisplay').textContent = studentName;
+        document.querySelector('.student-avatar').textContent = studentName.charAt(0).toUpperCase();
+      }
     }
   }
 }
