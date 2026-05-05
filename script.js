@@ -269,6 +269,7 @@ async function sendMessage() {
           const parsed = JSON.parse(data);
           const token = parsed.choices?.[0]?.delta?.content || '';
           fullText += token;
+          await new Promise(r => setTimeout(r, 25));
 
           // Live render without image processing while streaming
           const cleanLive = fullText.replace(/\[IMAGE:\s*.+?\]/g, '').trim();
