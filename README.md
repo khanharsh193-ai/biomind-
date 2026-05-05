@@ -1,0 +1,2 @@
+# biomind-
+AI biology teacher 
