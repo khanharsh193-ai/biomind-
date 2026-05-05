@@ -1,5 +1,5 @@
 // ── Config ──
-const GROQ_API_KEY = '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';
+const GROQ_API_KEY = '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'; // 🔑 Paste your Groq key here
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // ── State ──
@@ -15,6 +15,16 @@ const SYSTEM_PROMPT = `You are BioMind — a dedicated biology tutor for Indian 
 Every student you talk to is different — different age, different level, different world, different curiosity. Your job is to figure out who they are and teach them in a way that makes biology feel real, logical, and worth caring about.
 
 You never just give information. You build understanding — step by step, concept by concept, always on top of what the student already knows.
+
+RESPONSE FORMAT RULES — critical:
+- Never write long walls of text. Break responses into short, punchy paragraphs — 2-3 sentences maximum per paragraph.
+- Use **bold** for scientific terms the first time they appear.
+- Use line breaks generously between thoughts.
+- Never dump everything at once. Teach one idea, check understanding, then continue.
+- Keep each response focused on ONE concept or question. Don't cover multiple things in one reply.
+- When showing a process or steps, use a simple numbered list.
+- End every response with either a question OR a curiosity thread — never just stop.
+- If you want to show an image, write exactly: [IMAGE: search query for the image] on its own line. For example: [IMAGE: mitosis cell division diagram] or [IMAGE: chloroplast structure]. Only include this when a visual would genuinely help understanding. Maximum one image per response.
 
 STUDENT PROFILING:
 At the start of every new session, your first priority is to understand who the student is. Do this naturally — never like a form or a questionnaire. First, ask the student their name and what class they are in. Keep it casual and warm — one sentence, not a list of questions. Once you know their class, set their starting depth level: Class 6-7 → Level 1, Class 8-9 → Level 2, Class 10 → Level 3, Class 11-12 → Level 4. This is just the starting point. Adjust continuously based on how they respond, what they ask, and how deep their questions go. Never ask multiple questions at once. One question at a time, always. Never ask the student directly about their personal interests or life outside school — especially early in the conversation. Instead, let their world emerge naturally through the teaching process itself. When an analogy moment arrives naturally in the teaching, ask an intuitive question tied to that concept. The question should feel like it belongs to the science — not to a personal interview.
@@ -70,6 +80,88 @@ ABSOLUTE RULES — never break these:
 - Never let a session end without orientation — tell the student what they covered and plant one seed for next time
 - Never forget that the goal is understanding, not completion`;
 
+// ── Simple Markdown Renderer ──
+function renderMarkdown(text) {
+  return text
+    // Bold
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Italic
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // Numbered lists
+    .replace(/^\d+\.\s(.+)$/gm, '<li>$1</li>')
+    // Wrap consecutive <li> in <ol>
+    .replace(/(<li>.*<\/li>)/gs, '<ol>$1</ol>')
+    // Line breaks
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+}
+
+// ── Image Fetcher (Wikipedia/Wikimedia) ──
+async function fetchImage(query) {
+  try {
+    const searchQuery = encodeURIComponent(query + ' biology diagram');
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.thumbnail && data.thumbnail.source) {
+      return {
+        src: data.thumbnail.source,
+        caption: data.title
+      };
+    }
+  } catch (e) {}
+
+  // Fallback: Wikimedia search
+  try {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const title = data?.query?.search?.[0]?.title;
+    if (title) {
+      const pageUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+      const pageRes = await fetch(pageUrl);
+      const pageData = await pageRes.json();
+      if (pageData.thumbnail?.source) {
+        return {
+          src: pageData.thumbnail.source,
+          caption: pageData.title
+        };
+      }
+    }
+  } catch (e) {}
+
+  return null;
+}
+
+// ── Parse and render image tags in response ──
+async function processImageTags(bubble, fullText) {
+  const imageRegex = /\[IMAGE:\s*(.+?)\]/g;
+  let match;
+  const imageQueries = [];
+
+  while ((match = imageRegex.exec(fullText)) !== null) {
+    imageQueries.push(match[1].trim());
+  }
+
+  // Clean text of image tags
+  const cleanText = fullText.replace(/\[IMAGE:\s*.+?\]/g, '').trim();
+  bubble.innerHTML = '<p>' + renderMarkdown(cleanText) + '</p>';
+
+  // Fetch and append images
+  for (const query of imageQueries) {
+    const imgData = await fetchImage(query);
+    if (imgData) {
+      const imgWrapper = document.createElement('div');
+      imgWrapper.className = 'image-wrapper';
+      imgWrapper.innerHTML = `
+        <img src="${imgData.src}" alt="${imgData.caption}" class="bio-image" />
+        <div class="image-caption">${imgData.caption}</div>
+      `;
+      bubble.appendChild(imgWrapper);
+    }
+  }
+}
+
 // ── Start Session ──
 function startSession() {
   document.getElementById('welcomeState').style.display = 'none';
@@ -107,7 +199,7 @@ function newChat() {
   document.getElementById('messagesContainer').appendChild(welcome);
 }
 
-// ── Send Message ──
+// ── Send Message with Streaming ──
 async function sendMessage() {
   const input = document.getElementById('userInput');
   const text = input.value.trim();
@@ -120,9 +212,27 @@ async function sendMessage() {
 
   extractStudentInfo(text);
 
-  showTyping();
   isWaiting = true;
   document.getElementById('sendBtn').disabled = true;
+
+  // Create AI bubble immediately for streaming
+  const container = document.getElementById('messagesContainer');
+  const msg = document.createElement('div');
+  msg.className = 'message ai';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = '🧬';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble streaming';
+
+  msg.appendChild(avatar);
+  msg.appendChild(bubble);
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
+
+  let fullText = '';
 
   try {
     const response = await fetch(GROQ_URL, {
@@ -134,6 +244,7 @@ async function sendMessage() {
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         max_tokens: 1024,
+        stream: true,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           ...conversationHistory
@@ -141,18 +252,42 @@ async function sendMessage() {
       })
     });
 
-    const data = await response.json();
-    removeTyping();
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
-    const reply = data.choices?.[0]?.message?.content
-      || "Sorry, I couldn't get a response. Please try again.";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-    appendMessage('ai', reply);
-    conversationHistory.push({ role: 'assistant', content: reply });
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+
+      for (const line of lines) {
+        const data = line.slice(6);
+        if (data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          const token = parsed.choices?.[0]?.delta?.content || '';
+          fullText += token;
+
+          // Live render without image processing while streaming
+          const cleanLive = fullText.replace(/\[IMAGE:\s*.+?\]/g, '').trim();
+          bubble.innerHTML = '<p>' + renderMarkdown(cleanLive) + '</p>';
+          bubble.classList.add('streaming');
+          container.scrollTop = container.scrollHeight;
+        } catch (e) {}
+      }
+    }
+
+    // Final render with images
+    bubble.classList.remove('streaming');
+    await processImageTags(bubble, fullText);
+    container.scrollTop = container.scrollHeight;
+
+    conversationHistory.push({ role: 'assistant', content: fullText });
 
   } catch (err) {
-    removeTyping();
-    appendMessage('ai', "Something went wrong. Please check your connection and try again.");
+    bubble.innerHTML = '<p>Something went wrong. Please try again.</p>';
     console.error(err);
   }
 
@@ -172,7 +307,7 @@ function extractStudentInfo(text) {
   }
 }
 
-// ── Append Message ──
+// ── Append Message (user only now) ──
 function appendMessage(role, text) {
   const container = document.getElementById('messagesContainer');
 
@@ -185,7 +320,12 @@ function appendMessage(role, text) {
 
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
-  bubble.textContent = text;
+
+  if (role === 'ai') {
+    bubble.innerHTML = '<p>' + renderMarkdown(text) + '</p>';
+  } else {
+    bubble.textContent = text;
+  }
 
   msg.appendChild(avatar);
   msg.appendChild(bubble);
@@ -203,27 +343,6 @@ function appendMessage(role, text) {
       }
     }
   }
-}
-
-// ── Typing Indicator ──
-function showTyping() {
-  const container = document.getElementById('messagesContainer');
-  const typing = document.createElement('div');
-  typing.className = 'typing-indicator';
-  typing.id = 'typingIndicator';
-  typing.innerHTML = `
-    <div class="avatar">🧬</div>
-    <div class="typing-dots">
-      <span></span><span></span><span></span>
-    </div>
-  `;
-  container.appendChild(typing);
-  container.scrollTop = container.scrollHeight;
-}
-
-function removeTyping() {
-  const el = document.getElementById('typingIndicator');
-  if (el) el.remove();
 }
 
 // ── Keyboard & Resize ──
