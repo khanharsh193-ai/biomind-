@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BioMind</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <div class="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <div class="logo">
+          <div class="logo-icon">🧬</div>
+          <span class="logo-text">BioMind</span>
+        </div>
+        <button class="new-chat-btn" onclick="newChat()">+ New Session</button>
+      </div>
+
+      <div class="sidebar-section-label">Your Sessions</div>
+      <div class="sessions-list" id="sessionsList">
+        <div class="session-item active">Today's Session</div>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="student-card" id="studentCard">
+          <div class="student-avatar">S</div>
+          <div class="student-info">
+            <div class="student-name" id="studentNameDisplay">Student</div>
+            <div class="student-level" id="studentLevelDisplay">Level not set</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CHAT -->
+    <main class="chat-area">
+
+      <header class="chat-header">
+        <div class="header-left">
+          <div class="header-title">Biology Session</div>
+          <div class="header-subtitle">Powered by BioMind</div>
+        </div>
+        <div class="header-right">
+          <div class="status-dot"></div>
+          <span class="status-text">Ready to teach</span>
+        </div>
+      </header>
+
+      <div class="messages-container" id="messagesContainer">
+
+        <!-- Welcome State -->
+        <div class="welcome-state" id="welcomeState">
+          <div class="welcome-icon">🔬</div>
+          <h1 class="welcome-title">Welcome to BioMind</h1>
+          <p class="welcome-subtitle">Your personal biology tutor — built to make you <em>understand</em>, not just memorize.</p>
+          <button class="start-btn" onclick="startSession()">Start Learning →</button>
+        </div>
+
+      </div>
+
+      <div class="input-area">
+        <div class="input-wrapper">
+          <textarea
+            id="userInput"
+            class="message-input"
+            placeholder="Ask anything about biology..."
+            rows="1"
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"
+            disabled
+          ></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="input-hint">BioMind remembers your progress across sessions</div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
