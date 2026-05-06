@@ -282,7 +282,7 @@ async function sendMessage() {
 
     // Final render with images
     bubble.classList.remove('streaming');
-    await processImageTags(bubble, fullText);
+    try { await processImageTags(bubble, fullText); } catch(e) { console.log('Image error:', e); }
     container.scrollTop = container.scrollHeight;
 
     conversationHistory.push({ role: 'assistant', content: fullText });
