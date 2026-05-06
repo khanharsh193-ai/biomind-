@@ -415,7 +415,7 @@ function startSession() {
 }
 
 function newChat() {
-  clearSession();
+  conversationHistory = [];
 
   const container = document.getElementById('messagesContainer');
   container.innerHTML = '';
