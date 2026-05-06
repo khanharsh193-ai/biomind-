@@ -3,7 +3,7 @@
 //  Full memory · Sessions · Streaming
 // ══════════════════════════════════════════
 
-const GROQ_API_KEY = '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'; // 🔑 paste your key
+const GROQ_API_KEY = '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'; // 🔑 paste your key
 const GROQ_URL     = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL        = 'llama-3.3-70b-versatile';
 const STORE_KEY    = 'biomind_data';
