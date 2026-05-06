@@ -287,7 +287,15 @@ async function sendMessage() {
 
     conversationHistory.push({ role: 'assistant', content: fullText });
 saveSession();
-    console.log('Session saved:', localStorage.getItem('biomind_session'));
+    console.log('REACHED SAVE');
+try {
+  localStorage.setItem('test', '123');
+  console.log('localStorage works:', localStorage.getItem('test'));
+} catch(e) {
+  console.log('localStorage BLOCKED:', e);
+}
+saveSession();
+console.log('Session saved:', localStorage.getItem('biomind_session'));
   } catch (err) {
     bubble.innerHTML = '<p>Something went wrong. Please try again.</p>';
     console.error(err);
