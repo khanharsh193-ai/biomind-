@@ -291,6 +291,7 @@ saveSession();
   } catch (err) {
     bubble.innerHTML = '<p>Something went wrong. Please try again.</p>';
     console.error(err);
+    console.log('Error details:', err.message, err.stack);
   }
 
   isWaiting = false;
