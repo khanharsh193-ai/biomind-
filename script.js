@@ -440,7 +440,7 @@ async function sendMessage() {
         bubble.innerHTML = renderMarkdown(fullText);
         bubble.classList.add('streaming');
         container.scrollTop = container.scrollHeight;
-        await new Promise(r => setTimeout(r, 18));
+        await new Promise(r => setTimeout(r, 25));
       }
     }
 
