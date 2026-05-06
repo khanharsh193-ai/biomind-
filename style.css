@@ -238,3 +238,7 @@ html, body { height: 100%; font-family: var(--sans); background: var(--bg); colo
 
 /* ── Empty sessions ── */
 .no-sessions { font-size: 12px; color: var(--text3); padding: 8px 6px; font-style: italic; }
+.session-item-bottom { display: flex; align-items: center; justify-content: space-between; }
+.session-delete { font-size: 11px; color: var(--text3); padding: 2px 5px; border-radius: 4px; opacity: 0; transition: all 0.15s; cursor: pointer; }
+.session-item:hover .session-delete { opacity: 1; }
+.session-delete:hover { color: #f87171; background: rgba(248,113,113,0.1); }
