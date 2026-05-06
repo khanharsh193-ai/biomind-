@@ -286,7 +286,7 @@ async function sendMessage() {
     container.scrollTop = container.scrollHeight;
 
     conversationHistory.push({ role: 'assistant', content: fullText });
-
+saveSession();
   } catch (err) {
     bubble.innerHTML = '<p>Something went wrong. Please try again.</p>';
     console.error(err);
@@ -353,8 +353,48 @@ function handleKey(e) {
     sendMessage();
   }
 }
+function saveSession() {
+  const session = {
+    name: studentName,
+    class: studentClass,
+    level: document.getElementById('studentLevelDisplay').textContent,
+    history: conversationHistory,
+    lastSeen: new Date().toLocaleDateString()
+  };
+  localStorage.setItem('biomind_session', JSON.stringify(session));
+}
 
+function loadSession() {
+  const saved = localStorage.getItem('biomind_session');
+  if (!saved) return;
+  const session = JSON.parse(saved);
+
+  studentName = session.name || 'Student';
+  studentClass = session.class || null;
+
+  document.getElementById('studentNameDisplay').textContent = studentName;
+  document.getElementById('studentLevelDisplay').textContent = session.level || 'Level not set';
+  document.getElementById('studentNameSm') && (document.getElementById('studentNameSm').textContent = studentName);
+  document.querySelector('.student-avatar').textContent = studentName.charAt(0).toUpperCase();
+
+  conversationHistory = session.history || [];
+
+  if (conversationHistory.length > 0) {
+    document.getElementById('welcomeState').style.display = 'none';
+    document.getElementById('userInput').disabled = false;
+    document.getElementById('sendBtn').disabled = false;
+
+    conversationHistory.forEach(msg => {
+      if (msg.role === 'user') appendMessage('user', msg.content);
+      if (msg.role === 'assistant') appendMessage('ai', msg.content);
+    });
+
+    const returning = `Welcome back, ${studentName}! Ready to pick up where we left off?`;
+    appendMessage('ai', returning);
+  }
+}
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 160) + 'px';
-}
+} 
+window.addEventListener('load', loadSession);
