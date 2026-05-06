@@ -411,7 +411,7 @@ function sendMessage() {
         });
 
         return new Promise(function(resolve) {
-          setTimeout(function() { resolve(read()); }, 50);
+          setTimeout(function() { resolve(read()); }, 75);
         });
       });
     }
