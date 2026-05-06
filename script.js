@@ -329,6 +329,12 @@ function newSession() {
   showWelcomeScreen();
   updateSidebar();
   saveData();
+  if (profile.name) {
+  const greeting = getGreeting(profile.name);
+  appendMessage('ai', greeting);
+  conversationHistory.push({ role: 'assistant', content: greeting });
+  saveData();
+}
   document.getElementById('userInput').focus();
 }
 
