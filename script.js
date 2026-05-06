@@ -155,7 +155,19 @@ function getGreeting(name) {
 // ══════════════════════════════════════════
 //  UI RENDERING
 // ══════════════════════════════════════════
-
+function deleteSession(e, id) {
+  e.stopPropagation();
+  profile.sessions = profile.sessions.filter(s => s.id !== id);
+  if (currentSessionId === id) {
+    if (profile.sessions.length > 0) {
+      loadSessionById(profile.sessions[profile.sessions.length - 1].id);
+    } else {
+      newSession();
+    }
+  }
+  saveData();
+  updateSidebar();
+}
 function updateSidebar() {
   const list = document.getElementById('sessionsList');
   list.innerHTML = '';
@@ -171,7 +183,10 @@ function updateSidebar() {
     el.className = 'session-item' + (session.id === currentSessionId ? ' active' : '');
     el.innerHTML = `
       <div class="session-item-title">${session.title}</div>
-      <div class="session-item-meta">${session.date}</div>`;
+      <div class="session-item-bottom">
+  <div class="session-item-meta">${session.date}</div>
+  <div class="session-delete" onclick="deleteSession(event, ${session.id})">✕</div>
+</div>;
     el.onclick = () => loadSessionById(session.id);
     list.appendChild(el);
   });
