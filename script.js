@@ -29,7 +29,7 @@ let conversationHistory = [];
 //  SYSTEM PROMPT
 // ══════════════════════════════════════════
 function buildSystemPrompt() {
-  const pastContext = profile.topics.length > 0
+  const pastContext = profile.name
     ? `\n\nSTUDENT HISTORY:\nName: ${profile.name || 'unknown'}. Class: ${profile.class || 'unknown'}. Topics already covered: ${profile.topics.join(', ')}. Use this to build on what they already know and avoid re-teaching what is solid.`
     : '';
 
