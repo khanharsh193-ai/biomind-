@@ -287,6 +287,7 @@ async function sendMessage() {
 
     conversationHistory.push({ role: 'assistant', content: fullText });
 saveSession();
+    console.log('Session saved:', localStorage.getItem('biomind_session'));
   } catch (err) {
     bubble.innerHTML = '<p>Something went wrong. Please try again.</p>';
     console.error(err);
